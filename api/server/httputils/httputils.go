@@ -126,6 +126,72 @@ func ShouldBindAny(c *gin.Context, jsonObject interface{}, uriObject interface{}
 	return nil
 }
 
+/* type BindOptions func(c *gin.Context) error
+
+func WithBody(json interface{}) BindOptions {
+	return func(c *gin.Context) error {
+		return c.ShouldBindJSON(json)
+	}
+}
+
+func WithUri(uri interface{}) BindOptions {
+	return func(c *gin.Context) error {
+		return c.ShouldBindUri(uri)
+	}
+}
+
+func WithQuery(query interface{}) BindOptions {
+	return func(c *gin.Context) error {
+		return c.ShouldBindQuery(query)
+	}
+}
+
+func ShouldBind(c *gin.Context, opts ...BindOptions) (err error) {
+	for _, o := range opts {
+		if err = o(c); err != nil {
+			return err
+		}
+	}
+	return
+} */
+
+type errBind struct {
+	ctx *gin.Context
+	err error
+}
+
+func ShouldBind(c *gin.Context) *errBind {
+	return &errBind{
+		ctx: c,
+	}
+}
+
+func (b *errBind) doBind(obj interface{}, bind func(obj interface{}) error) {
+	if b.err != nil {
+		return
+	}
+	b.err = bind(obj)
+}
+
+func (b *errBind) Body(json interface{}) *errBind {
+	b.doBind(json, b.ctx.ShouldBindJSON)
+	return b
+}
+
+func (b *errBind) Uri(uri interface{}) *errBind {
+	b.doBind(uri, b.ctx.ShouldBindUri)
+	return b
+}
+
+func (b *errBind) Query(query interface{}) *errBind {
+	b.doBind(query, b.ctx.ShouldBindQuery)
+	return b
+}
+
+func (b *errBind) Error() error {
+	return b.err
+}
+
 func GetUserIdFromRequest(ctx context.Context) (int64, error) {
 	val := ctx.Value("userId")
 	if val == nil {

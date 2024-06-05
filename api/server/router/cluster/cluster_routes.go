@@ -45,7 +45,7 @@ func (cr *clusterRouter) createCluster(c *gin.Context) {
 	r := httputils.NewResponse()
 
 	var req types.CreateClusterRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := httputils.ShouldBind(c).Body(&req).Error(); err != nil {
 		httputils.SetFailed(c, r, err)
 		return
 	}
@@ -75,21 +75,15 @@ func (cr *clusterRouter) createCluster(c *gin.Context) {
 func (cr *clusterRouter) updateCluster(c *gin.Context) {
 	r := httputils.NewResponse()
 	var (
+		req    types.UpdateClusterRequest
 		idMeta IdMeta
-		err    error
 	)
-	if err = c.ShouldBindUri(&idMeta); err != nil {
+	if err := httputils.ShouldBind(c).Uri(&idMeta).Body(&req).Error(); err != nil {
 		httputils.SetFailed(c, r, err)
 		return
 	}
 
-	var req types.UpdateClusterRequest
-	if err = c.ShouldBindJSON(&req); err != nil {
-		httputils.SetFailed(c, r, err)
-		return
-	}
-
-	if err = cr.c.Cluster().Update(c, idMeta.ClusterId, &req); err != nil {
+	if err := cr.c.Cluster().Update(c, idMeta.ClusterId, &req); err != nil {
 		httputils.SetFailed(c, r, err)
 		return
 	}
@@ -113,17 +107,13 @@ func (cr *clusterRouter) updateCluster(c *gin.Context) {
 //	@Security     Bearer
 func (cr *clusterRouter) deleteCluster(c *gin.Context) {
 	r := httputils.NewResponse()
-
-	var (
-		idMeta IdMeta
-		err    error
-	)
-	if err = c.ShouldBindUri(&idMeta); err != nil {
+	var idMeta IdMeta
+	if err := httputils.ShouldBind(c).Uri(&idMeta).Error(); err != nil {
 		httputils.SetFailed(c, r, err)
 		return
 	}
 
-	if err = cr.c.Cluster().Delete(c, idMeta.ClusterId); err != nil {
+	if err := cr.c.Cluster().Delete(c, idMeta.ClusterId); err != nil {
 		httputils.SetFailed(c, r, err)
 		return
 	}
@@ -146,12 +136,11 @@ func (cr *clusterRouter) deleteCluster(c *gin.Context) {
 //	@Security     Bearer
 func (cr *clusterRouter) getCluster(c *gin.Context) {
 	r := httputils.NewResponse()
-
 	var (
 		idMeta IdMeta
 		err    error
 	)
-	if err = c.ShouldBindUri(&idMeta); err != nil {
+	if err = httputils.ShouldBind(c).Uri(&idMeta).Error(); err != nil {
 		httputils.SetFailed(c, r, err)
 		return
 	}
@@ -205,16 +194,15 @@ func (cr *clusterRouter) listClusters(c *gin.Context) {
 //	@Security     Bearer
 func (cr *clusterRouter) pingCluster(c *gin.Context) {
 	r := httputils.NewResponse()
-
 	var (
 		cluster types.Cluster
-		err     error
 	)
-	if err = c.ShouldBindJSON(&cluster); err != nil {
+	if err := httputils.ShouldBind(c).Body(&cluster).Error(); err != nil {
 		httputils.SetFailed(c, r, err)
 		return
 	}
-	if err = cr.c.Cluster().Ping(c, cluster.KubeConfig); err != nil {
+
+	if err := cr.c.Cluster().Ping(c, cluster.KubeConfig); err != nil {
 		httputils.SetFailed(c, r, err)
 		return
 	}
@@ -227,13 +215,13 @@ func (cr *clusterRouter) protectCluster(c *gin.Context) {
 	var (
 		idMeta IdMeta
 		req    types.ProtectClusterRequest
-		err    error
 	)
-	if err = httputils.ShouldBindAny(c, &req, &idMeta, nil); err != nil {
+	if err := httputils.ShouldBind(c).Body(&req).Uri(&idMeta).Error(); err != nil {
 		httputils.SetFailed(c, r, err)
 		return
 	}
-	if err = cr.c.Cluster().Protect(c, idMeta.ClusterId, &req); err != nil {
+
+	if err := cr.c.Cluster().Protect(c, idMeta.ClusterId, &req); err != nil {
 		httputils.SetFailed(c, r, err)
 		return
 	}
@@ -274,10 +262,11 @@ func (cr *clusterRouter) getEventList(c *gin.Context) {
 		eventOpt types.EventOptions
 		err      error
 	)
-	if err = httputils.ShouldBindAny(c, nil, &opts, &eventOpt); err != nil {
+	if err := httputils.ShouldBind(c).Uri(&opts).Query(&eventOpt).Error(); err != nil {
 		httputils.SetFailed(c, r, err)
 		return
 	}
+
 	if r.Result, err = cr.c.Cluster().GetEventList(c, opts.Cluster, eventOpt); err != nil {
 		httputils.SetFailed(c, r, err)
 		return
